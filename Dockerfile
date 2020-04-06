@@ -5,5 +5,5 @@ ADD . /code
 WORKDIR /code
 
 RUN pip install -r requirements.txt
-CMD ["/code/docker-entry.py"]
+CMD ["/code/docker-entry.sh"]
 
