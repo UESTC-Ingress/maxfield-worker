@@ -2,5 +2,5 @@
 
 set -e
 
-exec python /code/main.py
 exec python /code/web.py
+exec python /code/main.py
