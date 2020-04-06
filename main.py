@@ -76,6 +76,5 @@ def do_max_field(reqbody):
 channel.basic_consume(
     queue='maxfield-task', on_message_callback=callback, auto_ack=True)
 
-delete_old_dir()
 print('[MaxFieldWorker] Service is now up.')
 channel.start_consuming()
