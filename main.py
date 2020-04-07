@@ -62,7 +62,7 @@ def do_max_field(reqbody):
         f.write(reqbody["portal"])
     try:
         maxfield.maxfield("/tmp/maxfield.tmp.txt",
-                          int(reqbody["agents"]), num_cpus=0, output_csv=True, outdir="/tmp/maxfield-worker")
+                          int(reqbody["agents"]), res_colors=(reqbody["faction"] == "res"), num_cpus=0, output_csv=True, outdir="/tmp/maxfield-worker")
         json_object = json.dumps({
             "agents": int(reqbody["agents"])
         })
