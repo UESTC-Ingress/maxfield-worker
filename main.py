@@ -4,6 +4,7 @@ import time
 import json
 
 from dotenv import find_dotenv, load_dotenv
+from threading import Timer
 
 import maxfield.maxfield.maxfield as maxfield
 
@@ -19,7 +20,6 @@ connection = pika.BlockingConnection(
 channel = connection.channel()
 
 channel.queue_declare(queue='maxfield-task', durable=True)
-channel.queue_declare(queue='maxfield-result', durable=True)
 channel.basic_qos(prefetch_count=1)
 
 
@@ -54,15 +54,18 @@ def callback(ch, method, properties, body):
             "status": result
         }), routing_key=properties.reply_to, properties=pika.BasicProperties(correlation_id=properties.correlation_id))
     print("[MaxFieldWorker] Job Completed.")
-    delete_old_dir
+    delete_old_dir()
 
 
 def do_max_field(reqbody):
     with open("/tmp/maxfield.tmp.txt", "w", encoding="utf8") as f:
         f.write(reqbody["portal"])
     try:
+        google_api_key = None
+        if(reqbody["googlemap"]):
+            google_api_key = os.environ.get("GoogleMapAPIKey")
         maxfield.maxfield("/tmp/maxfield.tmp.txt",
-                          int(reqbody["agents"]), res_colors=(reqbody["faction"] == "res"), num_cpus=0, output_csv=True, outdir="/tmp/maxfield-worker")
+                          int(reqbody["agents"]), google_api_key=google_api_key, res_colors=(reqbody["faction"] == "res"), num_cpus=0, output_csv=True, outdir="/tmp/maxfield-worker")
         json_object = json.dumps({
             "agents": int(reqbody["agents"])
         })
@@ -73,8 +76,9 @@ def do_max_field(reqbody):
         return False
 
 
-channel.basic_consume(
-    queue='maxfield-task', on_message_callback=callback, auto_ack=True)
+if __name__ == "__main__":
+    channel.basic_consume(
+        queue='maxfield-task', consumer_tag=os.environ.get("NODEURL"), on_message_callback=callback, auto_ack=True)
 
-print('[MaxFieldWorker] Service is now up.')
-channel.start_consuming()
+    print('[MaxFieldWorker] Service is now up.')
+    channel.start_consuming()
