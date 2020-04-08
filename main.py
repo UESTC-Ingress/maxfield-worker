@@ -78,7 +78,7 @@ def do_max_field(reqbody):
 
 if __name__ == "__main__":
     channel.basic_consume(
-        queue='maxfield-task', consumer_tag=os.environ.get("NODEURL"), on_message_callback=callback, auto_ack=True)
+            queue='maxfield-task', consumer_tag=os.environ.get("NODEName")+":"+os.environ.get("NODEURL"), on_message_callback=callback, auto_ack=True)
 
     print('[MaxFieldWorker] Service is now up.')
     channel.start_consuming()
