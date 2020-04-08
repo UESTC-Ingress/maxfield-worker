@@ -64,8 +64,9 @@ def do_max_field(reqbody):
         google_api_key = None
         if(reqbody["googlemap"]):
             google_api_key = os.environ.get("GoogleMapAPIKey")
+            google_api_secret = os.environ.get('GoogleMapAPISecret')
         maxfield.maxfield("/tmp/maxfield.tmp.txt",
-                          int(reqbody["agents"]), google_api_key=google_api_key, res_colors=(reqbody["faction"] == "res"), num_cpus=0, output_csv=True, outdir="/tmp/maxfield-worker")
+                          int(reqbody["agents"]), google_api_key=google_api_key, google_api_secret=google_api_secret, res_colors=(reqbody["faction"] == "res"), num_cpus=0, output_csv=True, outdir="/tmp/maxfield-worker")
         json_object = json.dumps({
             "agents": int(reqbody["agents"])
         })
