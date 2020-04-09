@@ -40,7 +40,13 @@ def check_dir():
         os.mkdir("/tmp/maxfield-worker-results")
 
 
-def callback(ch, method, properties, body):
+def callback(ch, properties, body):
+    channel.basic_publish(
+        exchange='',
+        body=json.dumps({
+            "node": os.environ.get("NODEName") + ".processing",
+            "status": True
+        }), routing_key=properties.reply_to, properties=pika.BasicProperties(correlation_id=properties.correlation_id))
     check_dir()
     print("[MaxFieldWorker] Received a new request.")
     result = do_max_field(json.loads(str(body, encoding="utf-8")))
@@ -62,24 +68,31 @@ def do_max_field(reqbody):
         f.write(reqbody["portal"])
     try:
         google_api_key = None
-        if(reqbody["googlemap"]):
+        google_api_secret = None
+        if(reqbody.get("googlemap",False)):
             google_api_key = os.environ.get("GoogleMapAPIKey")
             google_api_secret = os.environ.get('GoogleMapAPISecret')
         maxfield.maxfield("/tmp/maxfield.tmp.txt",
-                          int(reqbody["agents"]), google_api_key=google_api_key, google_api_secret=google_api_secret, res_colors=(reqbody["faction"] == "res"), num_cpus=os.environ.get("CORES"), output_csv=True, outdir="/tmp/maxfield-worker")
+                            int(reqbody["agents"]), google_api_key=google_api_key, google_api_secret=google_api_secret, res_colors=(reqbody["faction"] == "res"), num_cpus=int(os.environ.get("CORES")), output_csv=True, outdir="/tmp/maxfield-worker")
         json_object = json.dumps({
             "agents": int(reqbody["agents"])
         })
         with open("/tmp/maxfield-worker/info.json", "w") as outfile:
             outfile.write(json_object)
+        time.sleep(8)
         return True
     except:
         return False
 
 
-if __name__ == "__main__":
-    channel.basic_consume(
-        queue='maxfield-task', consumer_tag=os.environ.get("NODEName")+":"+os.environ.get("NODEURL"), on_message_callback=callback, auto_ack=True)
+def start_loop():
+    while True:
+        result = channel.basic_get('maxfield-task',auto_ack=True)
+        if(result != (None, None, None)):
+            callback(channel, result[1], result[2])
+        time.sleep(5)
 
+
+if __name__ == "__main__":
     print('[MaxFieldWorker] Service is now up.')
-    channel.start_consuming()
+    start_loop()
