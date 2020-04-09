@@ -15,12 +15,7 @@ load_dotenv(find_dotenv())
 credentials = pika.PlainCredentials(
     os.environ.get('RBQUser'), os.environ.get("RBQPass"))
 
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host=os.environ.get("RBQHost"), virtual_host=os.environ.get("RBQBase"), credentials=credentials))
-channel = connection.channel()
-
-channel.queue_declare(queue='maxfield-task', durable=True)
-channel.basic_qos(prefetch_count=1)
+connection = None
 
 
 def delete_old_dir():
@@ -40,27 +35,28 @@ def check_dir():
         os.mkdir("/tmp/maxfield-worker-results")
 
 
-def callback(ch, properties, body):
-    channel.basic_publish(
+def callback(ch, method, properties, body):
+    global connection
+    ch.basic_publish(
         exchange='',
         body=json.dumps({
             "node": os.environ.get("NODEName") + ".processing",
             "status": True
         }), routing_key=properties.reply_to, properties=pika.BasicProperties(correlation_id=properties.correlation_id))
+    connection.close()
     check_dir()
     print("[MaxFieldWorker] Received a new request.")
     result = do_max_field(json.loads(str(body, encoding="utf-8")))
     if result:
         shutil.move("/tmp/maxfield-worker",
                     "/tmp/maxfield-worker-results/" + properties.correlation_id)
-    channel.basic_publish(
-        exchange='',
-        body=json.dumps({
-            "node": os.environ.get("NODEName"),
-            "status": result
-        }), routing_key=properties.reply_to, properties=pika.BasicProperties(correlation_id=properties.correlation_id))
     print("[MaxFieldWorker] Job Completed.")
     delete_old_dir()
+    start_loop(sendack=True, senddata={
+        "status": result,
+        "routing_key": properties.reply_to,
+        "correlation_id": properties.correlation_id
+    })
 
 
 def do_max_field(reqbody):
@@ -69,11 +65,11 @@ def do_max_field(reqbody):
     try:
         google_api_key = None
         google_api_secret = None
-        if(reqbody.get("googlemap",False)):
+        if(reqbody.get("googlemap", False)):
             google_api_key = os.environ.get("GoogleMapAPIKey")
             google_api_secret = os.environ.get('GoogleMapAPISecret')
         maxfield.maxfield("/tmp/maxfield.tmp.txt",
-                            int(reqbody["agents"]), google_api_key=google_api_key, google_api_secret=google_api_secret, res_colors=(reqbody["faction"] == "res"), num_cpus=int(os.environ.get("CORES")), output_csv=True, outdir="/tmp/maxfield-worker")
+                          int(reqbody["agents"]), google_api_key=google_api_key, google_api_secret=google_api_secret, res_colors=(reqbody["faction"] == "res"), num_cpus=int(os.environ.get("CORES")), output_csv=True, outdir="/tmp/maxfield-worker")
         json_object = json.dumps({
             "agents": int(reqbody["agents"])
         })
@@ -85,14 +81,26 @@ def do_max_field(reqbody):
         return False
 
 
-def start_loop():
-    while True:
-        result = channel.basic_get('maxfield-task',auto_ack=True)
-        if(result != (None, None, None)):
-            callback(channel, result[1], result[2])
-        time.sleep(5)
+def start_loop(sendack=False, senddata=None):
+    global connection
+    connection = pika.BlockingConnection(
+        pika.ConnectionParameters(host=os.environ.get("RBQHost"), virtual_host=os.environ.get("RBQBase"), credentials=credentials))
+    channel = connection.channel()
+
+    channel.queue_declare(queue='maxfield-task', durable=True)
+    channel.basic_qos(prefetch_count=1)
+    channel.basic_consume(
+        queue='maxfield-task', consumer_tag=os.environ.get("NODEName")+":"+os.environ.get("NODEURL"), on_message_callback=callback, auto_ack=True)
+    if sendack:
+        channel.basic_publish(
+            exchange='',
+            body=json.dumps({
+                "node": os.environ.get("NODEName"),
+                "status": senddata["status"]
+            }), routing_key=senddata["routing_key"], properties=pika.BasicProperties(correlation_id=senddata["correlation_id"]))
+    print('[MaxFieldWorker] Service is now up.')
+    channel.start_consuming()
 
 
 if __name__ == "__main__":
-    print('[MaxFieldWorker] Service is now up.')
     start_loop()
