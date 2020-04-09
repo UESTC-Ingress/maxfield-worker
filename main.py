@@ -66,7 +66,7 @@ def do_max_field(reqbody):
             google_api_key = os.environ.get("GoogleMapAPIKey")
             google_api_secret = os.environ.get('GoogleMapAPISecret')
         maxfield.maxfield("/tmp/maxfield.tmp.txt",
-                          int(reqbody["agents"]), google_api_key=google_api_key, google_api_secret=google_api_secret, res_colors=(reqbody["faction"] == "res"), num_cpus=0, output_csv=True, outdir="/tmp/maxfield-worker")
+                          int(reqbody["agents"]), google_api_key=google_api_key, google_api_secret=google_api_secret, res_colors=(reqbody["faction"] == "res"), num_cpus=os.environ.get("CORES"), output_csv=True, outdir="/tmp/maxfield-worker")
         json_object = json.dumps({
             "agents": int(reqbody["agents"])
         })
@@ -79,7 +79,7 @@ def do_max_field(reqbody):
 
 if __name__ == "__main__":
     channel.basic_consume(
-            queue='maxfield-task', consumer_tag=os.environ.get("NODEName")+":"+os.environ.get("NODEURL"), on_message_callback=callback, auto_ack=True)
+        queue='maxfield-task', consumer_tag=os.environ.get("NODEName")+":"+os.environ.get("NODEURL"), on_message_callback=callback, auto_ack=True)
 
     print('[MaxFieldWorker] Service is now up.')
     channel.start_consuming()
