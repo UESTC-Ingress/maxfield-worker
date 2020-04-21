@@ -49,14 +49,14 @@ def callback(ch, method, properties, body):
     check_dir()
     print("[MaxFieldWorker] Received a new request.")
     req_body = json.loads(str(body, encoding="utf-8"))
-    with open('/tmp/maxfield-runinfo', 'w') as f:
+    with open('/tmp/maxfield-worker-results/maxfield-runinfo', 'w') as f:
         json.dump({
             'req_body': req_body,
             "routing_key": properties.reply_to,
             "correlation_id": properties.correlation_id
         }, f)
     result = do_max_field(req_body)
-    os.remove('/tmp/maxfield-runinfo')
+    os.remove('/tmp/maxfield-worker-results/maxfield-runinfo')
     if result:
         shutil.move("/tmp/maxfield-worker",
                     "/tmp/maxfield-worker-results/" + properties.correlation_id)
@@ -105,7 +105,7 @@ def start_loop(sendack=False, senddata=None, recover=False):
     print('[MaxFieldWorker] Service is now up.')
     if recover:
         print("[MaxFieldWorker] Recovered from previous request.")
-        with open('/tmp/maxfield-runinfo', 'r') as f:
+        with open('/tmp/maxfield-worker-results/maxfield-runinfo', 'r') as f:
             rec_info = json.load(f)
             result = do_max_field(rec_info['req_body'])
             if result:
@@ -117,7 +117,7 @@ def start_loop(sendack=False, senddata=None, recover=False):
                 "correlation_id": rec_info['correlation_id'],
                 "routing_key":  rec_info['routing_key']
             }
-            os.remove('/tmp/maxfield-runinfo')
+            os.remove('/tmp/maxfield-worker-results/maxfield-runinfo')
             delete_old_dir()
     if sendack or recover:
         channel.basic_publish(
@@ -130,6 +130,6 @@ def start_loop(sendack=False, senddata=None, recover=False):
 
 
 if __name__ == "__main__":
-    if os.path.exists('/tmp/maxfield-runinfo'):
+    if os.path.exists('/tmp/maxfield-worker-results/maxfield-runinfo'):
         start_loop(recover=True)
     start_loop()
