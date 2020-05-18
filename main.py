@@ -22,7 +22,7 @@ def delete_old_dir():
     now = time.time()
     old = now - 86400
     for _dir in os.listdir(path):
-        if os.path.getmtime(path + '/' + _dir) < old:
+        if os.path.getmtime(path + '/' + _dir) < old and os.path.isdir(path + '/' + _dir):
             print("[MaxFieldWorker] Deleted expired ID "+_dir)
             shutil.rmtree(path + '/' + _dir)
 
@@ -120,12 +120,12 @@ def start_loop(sendack=False, senddata=None, recover=False):
             os.remove('/tmp/maxfield-worker-results/maxfield-runinfo')
             delete_old_dir()
     if sendack or recover:
-        channel.basic_publish(
-            exchange='',
-            body=json.dumps({
-                "node": os.environ.get("NODEName"),
-                "status": senddata["status"]
-            }), routing_key=senddata["routing_key"], properties=pika.BasicProperties(correlation_id=senddata["correlation_id"]))
+        with open('/tmp/maxfield-worker-results/' + senddata["correlation_id"] + ".json", "w") as postjson:
+            json.dump({
+                "routing_key": senddata["routing_key"],
+                "status": senddata["status"],
+                "correlation_id": senddata["correlation_id"]
+            }, postjson)
     channel.start_consuming()
 
 
