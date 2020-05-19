@@ -27,6 +27,8 @@ def init_ch():
 
 def start_loop():
     global channel
+    global connection
+    init_ch()
     for _dir in os.listdir(SAVEPATH):
         if _dir.endswith(".json"):
             print("[MaxFieldWorker] Process result " + _dir)
@@ -39,9 +41,9 @@ def start_loop():
                         "status": loadjson["status"]
                     }), routing_key=loadjson["routing_key"], properties=pika.BasicProperties(correlation_id=loadjson["correlation_id"]))
             os.remove(SAVEPATH + '/' + _dir)
+    connection.close()
     time.sleep(30)
 
 if __name__ == "__main__":
-    init_ch()
     while True:
         start_loop()
