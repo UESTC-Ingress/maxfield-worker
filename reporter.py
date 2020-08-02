@@ -72,4 +72,7 @@ def start_loop():
 if __name__ == "__main__":
     while True:
         update_node()
-        start_loop()
+        try:
+            start_loop()
+        except:
+            start_loop()
