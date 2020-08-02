@@ -29,7 +29,7 @@ s3_client = s3_sess.client('s3', endpoint_url=os.environ.get('S3URL'),
 
 def update_node():
     headers = {'Content-Type': 'application/json'}
-    requests.post(url='https://maxfield.nia.ac.cn/update_node', headers=headers, data=json.dumps(nodedata))
+    requests.post(url='https://maxfield-api.nia.ac.cn/update_node', headers=headers, data=json.dumps(nodedata))
 
 def upload_dir(path, id):
     for root, _, files in os.walk(path):
