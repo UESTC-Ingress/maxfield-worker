@@ -18,7 +18,9 @@ channel = None
 
 SAVEPATH = os.environ.get('TMPPATH') + '/maxfield-worker-results'
 
-s3_client = boto3.client('s3', region_name=os.environ.get('S3ZONE'), endpoint_url=os.environ.get('S3URL'),
+s3_sess = boto3.Session(region_name="nl-ams")
+
+s3_client = s3_sess.client('s3', endpoint_url=os.environ.get('S3URL'),
                          aws_access_key_id=os.environ.get('S3ACCESSKEY'), aws_secret_access_key=os.environ.get('S3SECRETKEY'))
 
 
