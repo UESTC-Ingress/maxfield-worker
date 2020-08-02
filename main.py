@@ -77,7 +77,7 @@ def do_max_field(reqbody):
         return False
 
 
-def start_loop(sendack=False, senddata=None):
+def start_loop():
     global connection
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(host=os.environ.get("RBQHost"), virtual_host=os.environ.get("RBQBase"), credentials=credentials))
@@ -87,7 +87,10 @@ def start_loop(sendack=False, senddata=None):
     channel.basic_consume(
         queue='maxfield-task', consumer_tag=os.environ.get("NODEName") + ":" + os.environ.get("CORES"), on_message_callback=callback, auto_ack=True)
     print('[MaxFieldWorker] Service is now up.')
-    channel.start_consuming()
+    try:
+        channel.start_consuming()
+    except:
+        start_loop()
 
 
 if __name__ == "__main__":
