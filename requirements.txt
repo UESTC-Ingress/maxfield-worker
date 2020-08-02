@@ -10,3 +10,4 @@ pygifsicle==1.0.1
 Flask==1.1.1
 Flask-Login==0.5.0
 Flask-Cors==3.0.8
+boto3==1.14.33
