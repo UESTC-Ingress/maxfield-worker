@@ -3,12 +3,15 @@ import pika
 import time
 import json
 import boto3
+import requests
 
 from dotenv import find_dotenv, load_dotenv
 
 import os
 import shutil
 load_dotenv(find_dotenv())
+
+nodedata = { "node": os.environ.get("NODEName"), "cores": os.environ.get("CORES"), "key": os.environ.get("NODEUpdateKey") }
 
 credentials = pika.PlainCredentials(
     os.environ.get('RBQUser'), os.environ.get("RBQPass"))
@@ -23,6 +26,10 @@ s3_sess = boto3.Session(region_name="nl-ams")
 s3_client = s3_sess.client('s3', endpoint_url=os.environ.get('S3URL'),
                          aws_access_key_id=os.environ.get('S3ACCESSKEY'), aws_secret_access_key=os.environ.get('S3SECRETKEY'))
 
+
+def update_node():
+    headers = {'Content-Type': 'application/json'}
+    requests.post(url='https://maxfield.nia.ac.cn/update_node', headers=headers, data=json.dumps(nodedata))
 
 def upload_dir(path, id):
     for root, _, files in os.walk(path):
@@ -64,4 +71,5 @@ def start_loop():
 
 if __name__ == "__main__":
     while True:
+        update_node()
         start_loop()
