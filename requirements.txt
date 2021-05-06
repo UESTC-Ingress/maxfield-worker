@@ -9,5 +9,5 @@ imageio==2.8.0
 pygifsicle==1.0.1
 Flask==1.1.1
 Flask-Login==0.5.0
-Flask-Cors==3.0.8
+Flask-Cors==3.0.9
 boto3==1.14.33
