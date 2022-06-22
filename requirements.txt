@@ -1,6 +1,6 @@
 python-dotenv==0.11.0
 pika==1.1.0
-numpy==1.18.2
+numpy==1.22.0
 networkx==2.4
 scipy==1.4.1
 ortools==7.5.7466
